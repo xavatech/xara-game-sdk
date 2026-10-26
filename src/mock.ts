@@ -1,45 +1,46 @@
 import { PROTOCOL_VERSION, type HostWindow } from "./client";
-import type { GameState, Move, PaymentResult, Player, Purchase } from "./types";
+import type { WirePurchase, WireState } from "./wire";
 
-export interface MockHostOptions {
+export interface MockAppOptions {
   window?: HostWindow;
   game?: { id: number; name: string };
-  /** Defaults to two players, both accepted. */
-  players?: Pick<Player, "user_id" | "name">[];
+  /** Defaults to two players, both already in the game. */
+  players?: { id: number; name: string }[];
   /** The game starts waiting for the other players to accept. */
   invited?: boolean;
-  /** Approves or refuses a purchase; defaults to approving it. */
+  /** Approves or refuses a purchase. Defaults to approving it. */
   approvePayment?: (item: string, amount: number) => boolean | Promise<boolean>;
 }
 
 /**
  * Plays the part of the Xara app, so a game can be built in a browser.
- * Like the app it keeps turns and revisions, but every player sits at this
- * one screen: the viewer is always whoever's turn it is.
+ * Turns work the way they do in the app, but every player sits at this
+ * one screen: this phone is always whoever's turn it is.
  */
-export function installMockHost(options: MockHostOptions = {}) {
+export function mockApp(options: MockAppOptions = {}) {
   const win = options.window ?? (globalThis as unknown as HostWindow);
   const people = options.players ?? [
-    { user_id: 1, name: "Player 1" },
-    { user_id: 2, name: "Player 2" },
+    { id: 1, name: "Player 1" },
+    { id: 2, name: "Player 2" },
   ];
   const key = "mock";
-  const moves: Move[] = [];
-  const purchases: Purchase[] = [];
-  const state: GameState = {
+  const moves: WireState["moves"] = [];
+  const purchases: WirePurchase[] = [];
+  const state: WireState = {
     game: options.game ?? { id: 1, name: "Game" },
     session: {
       session_id: 1,
       status: options.invited ? "invited" : "active",
       revision: 0,
-      turn_user_id: options.invited ? null : people[0].user_id,
-      created_by: people[0].user_id,
+      turn_user_id: options.invited ? null : people[0].id,
+      created_by: people[0].id,
       group_id: null,
       result: null,
     },
-    viewer: { user_id: options.invited ? people[1].user_id : people[0].user_id, role: "player" },
+    viewer: { user_id: options.invited ? people[1].id : people[0].id, role: "player" },
     players: people.map((person, i) => ({
-      ...person,
+      user_id: person.id,
+      name: person.name,
       status: i === 0 || !options.invited ? "accepted" : "invited",
       is_you: false,
     })),
@@ -47,7 +48,7 @@ export function installMockHost(options: MockHostOptions = {}) {
     purchases,
   };
 
-  const snapshot = (): GameState => {
+  const snapshot = (): WireState => {
     const viewer = state.session.turn_user_id ?? state.viewer.user_id;
     return {
       ...structuredClone(state),
@@ -98,10 +99,10 @@ export function installMockHost(options: MockHostOptions = {}) {
       }
       case "requestPayment": {
         const existing = purchases.find((purchase) => purchase.reference === payload.reference);
-        if (existing?.status === "paid") return { status: "success", purchase: existing } satisfies PaymentResult;
+        if (existing?.status === "paid") return { status: "success", purchase: existing };
         const approve = options.approvePayment ?? (() => true);
-        if (!(await approve(payload.item, payload.amount))) return { status: "cancelled" } satisfies PaymentResult;
-        const purchase: Purchase = existing ?? {
+        if (!(await approve(payload.item, payload.amount))) return { status: "cancelled" };
+        const purchase: WirePurchase = existing ?? {
           id: purchases.length + 1,
           session_id: session.session_id,
           reference: payload.reference,
@@ -112,7 +113,7 @@ export function installMockHost(options: MockHostOptions = {}) {
           payment_reference: `mock-${purchases.length + 1}`,
         };
         if (!existing) purchases.push(purchase);
-        return { status: "success", purchase } satisfies PaymentResult;
+        return { status: "success", purchase };
       }
       case "close":
         return undefined;

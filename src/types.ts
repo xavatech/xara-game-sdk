@@ -2,82 +2,88 @@ export type SessionStatus = "invited" | "active" | "completed" | "declined" | "c
 
 export type PlayerStatus = "invited" | "accepted" | "declined";
 
-/** A player, in turn order: whoever started the game moves first. */
+/** A player, in turn order. The person who started the game goes first. */
 export interface Player {
-  user_id: number;
-  /** How the player's phone labels them: "You", or a contact name. */
+  id: number;
+  /** "You" on this phone, or the name this phone has for them. */
   name: string;
   status: PlayerStatus;
-  is_you: boolean;
+  /** This phone. */
+  you: boolean;
 }
 
 /** How a game ended. No winners is a draw. */
-export interface GameResult {
-  winner_ids: number[];
-  summary: string | null;
-  /** Set when a player left a game being played. */
-  forfeited_by?: number;
+export interface Outcome {
+  winners: number[];
+  /** Shown on the chat card. The same line for every player, so it never says "you". */
+  summary?: string | null;
+  /** Set when a player left a game that was being played. */
+  leftBy?: number;
 }
 
 export interface Session {
-  session_id: number;
+  id: number;
   status: SessionStatus;
-  /** How many moves have been made. */
-  revision: number;
-  turn_user_id: number | null;
-  created_by: number;
-  group_id: number | null;
-  result: GameResult | null;
+  /** How many moves have been played. The next move follows this one. */
+  moveCount: number;
+  /** Whose turn it is, while the game is being played. */
+  turn: number | null;
+  startedBy: number;
+  groupId: number | null;
+  outcome: Outcome | null;
 }
 
-/** A move a player made, as your game sent it. */
-export interface Move<T = unknown> {
+/** A move someone already played, oldest first in the list. */
+export interface PlayedMove<T = unknown> {
   /** Counts from 1. */
-  revision: number;
-  user_id: number;
-  payload: T;
-  created_at: string;
+  step: number;
+  playerId: number;
+  /** What that player's game sent. */
+  move: T;
+  at: string;
 }
 
 export interface Purchase {
   id: number;
-  session_id: number;
-  /** Your own id for the purchase. */
+  sessionId: number;
+  /** The reference your game sent with `buy`. */
   reference: string;
   item: string;
   /** Whole naira. */
   amount: number;
   currency: "NGN";
   status: "requested" | "paid";
-  payment_reference: string | null;
+  /** Set once the player has paid. */
+  receipt: string | null;
 }
 
-/** Everything a game needs to draw itself, sent on start and after every change. */
+/** Everything a game needs to draw itself. */
 export interface GameState<T = unknown> {
   session: Session;
   game: { id: number; name: string };
-  /** A spectator is a group member watching; they can't move. */
-  viewer: { user_id: number; role: "player" | "spectator" };
+  /** This phone. `watching` is a group member who is not playing. */
+  me: { id: number; watching: boolean };
   players: Player[];
-  /** Every move so far, oldest first. Replay them to rebuild the game. */
-  moves: Move<T>[];
-  /** The viewer's own purchases in this session. */
+  /** Every move so far, oldest first. Replay these to draw the game. */
+  moves: PlayedMove<T>[];
+  /** What this phone has bought in this game. */
   purchases: Purchase[];
 }
 
-export interface PaymentRequest {
-  /** What the player is buying, shown on the approval sheet. */
+export interface PurchaseRequest {
+  /** Shown on the approval sheet. */
   item: string;
   /** Whole naira, paid to your business. */
   amount: number;
-  /** Your id for this purchase. Asking again with it never charges twice. */
+  /**
+   * Your id for this purchase. Asking again with the same reference
+   * returns it instead of charging twice.
+   */
   reference: string;
 }
 
-export interface PaymentResult {
+export interface PurchaseResult {
   status: "success" | "cancelled" | "failed";
   message?: string;
   purchase?: Purchase;
 }
-
-export type ResultInput = { winner_ids: number[]; summary?: string };
