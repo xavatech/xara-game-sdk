@@ -128,13 +128,16 @@ describe("connect", () => {
 });
 
 describe("mockApp", () => {
-  test("keeps turns the way the app does", async () => {
+  test("keeps turns the way the app does, on one phone at a time", async () => {
     const win: HostWindow = {};
-    mockApp({ window: win, players: [{ id: 1, name: "A" }, { id: 2, name: "B" }] });
+    const app = mockApp({ window: win, players: [{ id: 1, name: "A" }, { id: 2, name: "B" }] });
     const xara = connect<{ cell: number }>({ window: win });
     await xara.load();
     await xara.move({ cell: 0 });
     expect(xara.state?.session).toMatchObject({ moveCount: 1, turn: 2 });
+    expect(xara.state?.me.id).toBe(1);
+    await expect(xara.move({ cell: 1 })).rejects.toMatchObject({ code: "rejected" });
+    app.playAs(2);
     expect(xara.state?.me.id).toBe(2);
     await xara.move({ cell: 4 }, { outcome: { winners: [2], summary: "O wins" } });
     expect(xara.state?.session).toMatchObject({ status: "completed", outcome: { winners: [2], summary: "O wins" } });

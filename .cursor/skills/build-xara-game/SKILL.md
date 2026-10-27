@@ -55,7 +55,7 @@ No other origins, no CDN fonts, no iframes.
 ```ts
 import { connect, inXara, mockApp } from "@xavatech/xara-game-sdk";
 
-if (import.meta.env.DEV && !inXara()) {
+if (!inXara()) {
   mockApp({
     players: [
       { id: 1, name: "Ada" },
@@ -71,7 +71,7 @@ xara.onChange(draw);
 draw(await xara.load());
 ```
 
-`mockApp` is for the browser during development. It is not part of the build the app opens.
+`mockApp` runs only outside the app. It adds a bar that switches which player's phone the page is, and a move only goes through on that player's turn. Inside the app it never runs.
 
 ## Draw and play
 

@@ -2,7 +2,7 @@
 
 Build turn-based web games that people start from Xara chats, one-to-one or in groups. Your game is a web page; the Xara app opens it full screen and this SDK connects the two. The app makes every call to Xara with the player's account and asks for their PIN before anything is paid, so your page never sees a token, a PIN, or any account details.
 
-See [xara-guess-the-number](../xara-guess-the-number) for a short game, and [xara-tic-tac-toe](../xara-tic-tac-toe) for a complete one.
+See [xara-guess-the-number](https://github.com/xavatech/xara-guess-the-number) for a short game, and [xara-tic-tac-toe-game](https://github.com/xavatech/xara-tic-tac-toe-game) for a complete one.
 
 ## Cursor
 
@@ -13,6 +13,14 @@ curl -fsSL --create-dirs -o .claude/skills/build-xara-game/SKILL.md https://docs
 ```
 
 ## Install
+
+Start a new game, with the SDK, tests, and the game skill set up:
+
+```bash
+npx @xavatech/create-xara-game my-game
+```
+
+Or add it to an existing page:
 
 ```bash
 npm install @xavatech/xara-game-sdk
@@ -28,26 +36,29 @@ import { connect } from "@xavatech/xara-game-sdk";
 type MyMove = { cell: number };
 const xara = connect<MyMove>();
 
-xara.onChange(draw);          // someone moved, accepted, or left
-draw(await xara.load());      // the game as it stands, with every move so far
+xara.onChange(draw); // someone moved, accepted, or left
+draw(await xara.load()); // the game as it stands, with every move so far
 
 async function play(cell: number) {
   if (!xara.isMyTurn()) return;
   const won = /* your rules */ false;
-  await xara.move({ cell }, won ? { outcome: { winners: [xara.state!.me.id] } } : {});
+  await xara.move(
+    { cell },
+    won ? { outcome: { winners: [xara.state!.me.id] } } : {},
+  );
 }
 ```
 
-| Call | What it does |
-| --- | --- |
-| `load()` | Loads the game and resolves with its state. |
-| `onChange(fn)` | Calls `fn` with each new state. Returns a function that stops it. |
-| `isMyTurn()` | This phone is playing, and it is their turn. |
-| `accept()` | Accepts this phone's invite. The game starts once everyone has. |
-| `move(move, { outcome? })` | Plays a move. With `outcome` the move ends the game. |
-| `end(outcome)` | Ends the game without a move. `winners: []` is a draw. |
+| Call                               | What it does                                                                                          |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `load()`                           | Loads the game and resolves with its state.                                                           |
+| `onChange(fn)`                     | Calls `fn` with each new state. Returns a function that stops it.                                     |
+| `isMyTurn()`                       | This phone is playing, and it is their turn.                                                          |
+| `accept()`                         | Accepts this phone's invite. The game starts once everyone has.                                       |
+| `move(move, { outcome? })`         | Plays a move. With `outcome` the move ends the game.                                                  |
+| `end(outcome)`                     | Ends the game without a move. `winners: []` is a draw.                                                |
 | `buy({ item, amount, reference })` | Asks the player to pay `amount` naira to your business. Resolves `success`, `cancelled`, or `failed`. |
-| `close()` | Closes the game screen. |
+| `close()`                          | Closes the game screen.                                                                               |
 
 Calls the app refuses reject with `XaraGameError`; `code` is `rejected` (for example "It's not your turn"), `timeout`, or `closed` (not opened from Xara).
 
@@ -72,10 +83,16 @@ Xara checks that whoever moves is a player, that it is their turn, and that the 
 ```ts
 import { connect, inXara, mockApp } from "@xavatech/xara-game-sdk";
 
-if (import.meta.env.DEV && !inXara()) mockApp({ players: [{ id: 1, name: "Ada" }, { id: 2, name: "Bayo" }] });
+if (!inXara())
+  mockApp({
+    players: [
+      { id: 1, name: "Ada" },
+      { id: 2, name: "Bayo" },
+    ],
+  });
 ```
 
-The mock app keeps turns the way the app does, with every player at one screen.
+Outside the app, a bar at the bottom switches which player's phone the page is. A move only goes through on that player's turn, the same as in the app.
 
 ## Security
 
