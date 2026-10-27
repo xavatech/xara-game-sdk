@@ -4,6 +4,14 @@ Build turn-based web games that people start from Xara chats, one-to-one or in g
 
 See [xara-guess-the-number](../xara-guess-the-number) for a short game, and [xara-tic-tac-toe](../xara-tic-tac-toe) for a complete one.
 
+## Cursor
+
+Install the [game skill](https://docs.usexara.ai/games/skill) once, then describe the game:
+
+```bash
+curl -fsSL --create-dirs -o .claude/skills/build-xara-game/SKILL.md https://docs.usexara.ai/skills/build-xara-game/SKILL.md
+```
+
 ## Install
 
 ```bash

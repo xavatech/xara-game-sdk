@@ -15,7 +15,8 @@
   },
   "unpkg": "./dist/index.global.js",
   "files": [
-    "dist"
+    "dist",
+    ".cursor/skills/build-xara-game"
   ],
   "sideEffects": false,
   "publishConfig": {
